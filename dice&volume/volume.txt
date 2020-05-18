@@ -1,0 +1,10 @@
+the volume of label 1 is 1200
+the volume of label 2 is 1050
+the volume of label 3 is 1961
+the volume of label 4 is 1822
+the volume of label 5 is 1485
+the volume of label 6 is 1533
+the volume of label 7 is 339
+the volume of label 8 is 369
+the volume of label 9 is 243
+the volume of label 10 is 233
