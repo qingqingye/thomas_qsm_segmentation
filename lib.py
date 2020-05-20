@@ -38,11 +38,11 @@ class dice(object):
             if a + b != 0:
                 Dice[label] = 2 * c / (a + b)
 
-            """
-            # 写入文件
-            with open(dest_file, 'a+') as f:
-                f.write('')
-            """
+            # """
+            # # 写入文件
+            # with open(dest_file, 'a+') as f:
+            #     f.write('')
+            # """
 
         return Dice
 
@@ -133,10 +133,25 @@ class mask(object):
         ants.image_write(mask,"data/mask/mask_of_"+file_name+".nii.gz")
 
 class warp(object):
-    def warp(self,masked_dir_list,label_dir_list):
-        # 读取文件, 有24个atlas
-        testsubject_img = ants.image_read(masked_dir_list[24])
-        testsubject_tabel = ants.image_read(label_dir_list[24])
+    def warp(self,masked_dir_list,label_dir_list,target_num):
+        basicTool = basic()
+        basicTool.mkdir('data/fusion_label_multi/QSM_warped')
+        basicTool.mkdir('data/fusion_label_multi/label_warped')
+        # target img
+        testsubject_img = ants.image_read(masked_dir_list[target_num])
+        testsubject_label = ants.image_read(label_dir_list[target_num])
+
+        target_file_name = re.split(r'[/.]', masked_dir_list[target_num])[-3]
+        target_label_name = re.split(r'[/.]', label_dir_list[target_num])[-3]
+        ants.image_write(testsubject_img,'data/fusion_label_multi/QSM_warped/' + target_file_name + '_warped.nii.gz')
+        ants.image_write(testsubject_label,'data/fusion_label_multi/label_warped/' + target_label_name + '_warped.nii.gz')
+
+        # del target img
+        del masked_dir_list[target_num]
+        del label_dir_list[target_num]
+        print(masked_dir_list,label_dir_list)
+
+        # 读取文件, 24个atlas
         for i in range(24):
             move_img = ants.image_read(masked_dir_list[i])  # subject的图像
             # 配准，使用SyN
@@ -154,12 +169,11 @@ class warp(object):
             print(label_name, 'has been warped')
 
             # 保存变换后的图像
-            warped_atlas_filename = 'fusion_label_multi/QSM_warped/' + atlas_name + '_warped.nii.gz'
-            warped_atlas_label_filename = 'fusion_label_multi/label_warped/' + label_name + '_warped_label.nii.gz'
+            warped_atlas_filename = 'data/fusion_label_multi/QSM_warped/' + atlas_name + '_warped.nii.gz'
+            warped_atlas_label_filename = 'data/fusion_label_multi/label_warped/' + label_name + '_warped_label.nii.gz'
             ants.image_write(warped_atlas_label_img, warped_atlas_label_filename)
             ants.image_write(outs['warpedmovout'], warped_atlas_filename)
 
-        ants.image_write(testsubject_img,)    
 
 class crop(object):
     def __init__(self):

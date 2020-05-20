@@ -8,14 +8,14 @@ if __name__ == '__main__':
 	basicTool = basic()
 	label_fusion_tool = label_fusion()
 	begin = time.time()
-	target_name = 'data/fusion_label_multi/QSM_masked_cropped/N037_QSM_mask_cropped.nii.gz'
+	target_name = 'data/fusion_label_multi/QSM_warped/N001_QSM_masked_warped.nii.gz'
 	# read mask of target image
-	target_mask_name = 'data/mask/mask_of_N037_QSM_cropped.nii.gz'
+	target_mask_name = 'data/mask/mask_of_N001_QSM.nii.gz'
 
 	# atlas_list 和 label_list
-	atlas_list = basicTool.make_dir_list('data/fusion_label_multi/QSM_masked_cropped')[1:]
+	atlas_list = basicTool.make_dir_list('data/fusion_label_multi/QSM_warped')[1:]
 	# important! according to specify situation to get image without target qsm and target label
-	label_list = basicTool.make_dir_list('data/fusion_label_multi/label_cropped')[1:]
+	label_list = basicTool.make_dir_list('data/fusion_label_multi/label_warped')[1:]
 	print(atlas_list)
 	print(label_list)
 
@@ -31,4 +31,5 @@ if __name__ == '__main__':
 
 	t = time.time() - begin
 	print('program complete in {:.0f}m {:.0f}s'.format(t // 60, t % 60))  # 打印出来时间
+
 
