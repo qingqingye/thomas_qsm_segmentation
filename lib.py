@@ -4,6 +4,76 @@ import re
 import numpy as np
 import nibabel as nb
 
+class dice(object):
+    def dice(self,label_image_x_dirname, label_image_y_dirname):
+        # 求出标签文件所有标签的dice
+
+        image_x = ants.image_read(label_image_x_dirname).numpy()
+        image_y = ants.image_read(label_image_y_dirname).numpy()
+
+        # h = "变量1" if a>b else "变量2"
+
+        max_num = np.max(image_x) if np.max(
+            image_x) > np.max(image_y) else np.max(image_y)
+
+        max_num = np.int(max_num)
+
+        # Dice 存放每个标签的dice值
+        Dice = np.zeros(max_num + 1)
+
+        # 遍历每个标签
+
+        print(max_num)
+        for label in range(1, max_num + 1):
+
+            intersect = 0  # 交集像素个数
+            total = 0  # 全部像素
+
+            # 遍历图像
+            a = np.sum(image_x == label)
+            b = np.sum(image_y == label)
+
+            c = np.sum(((image_x - label) == 0) & ((image_y - label) == 0))
+
+            if a + b != 0:
+                Dice[label] = 2 * c / (a + b)
+
+            """
+            # 写入文件
+            with open(dest_file, 'a+') as f:
+                f.write('')
+            """
+
+        return Dice
+
+    # def parse_args(self):
+    #
+    #     description = "计算两个标签文件的dice系数"
+    #     parser = argparse.ArgumentParser(description=description)
+    #
+    #     parser.add_argument('filename', nargs=2, help="输入两个标签文件的文件名")
+    #
+    #     args = parser.parse_args()
+    #     return args
+
+    def dice_cal(self,label_image_x_dirname, label_image_y_dirname):
+
+        print("——————————————开始运行————————————————")
+        start = time.time()
+
+        # args = parse_args()
+        # [label_image1, label_image2] = args.filename
+
+        DICE = dice(label_image_x_dirname, label_image_y_dirname)
+        f = "dice.txt"
+        with open(f, "a") as file:  # “a"，代表追加内容
+            for i in range(0, len(DICE)):
+                file.write("the dice of label %d is %g" % (i, DICE[i]) + "\n")
+                print("the dice of label %d is %g" % (i, DICE[i]))
+            t = time.time() - start
+            file.write('程序结束于 {:.0f}m {:.0f}s'.format(t // 60, t % 60) + "\n")
+            print('程序结束于 {:.0f}m {:.0f}s'.format(t // 60, t % 60))
+
 class basic(object):
     # according to path get all file under this path
     def make_dir_list(self,path):
@@ -28,7 +98,7 @@ class mask(object):
     # make all QSM masked
     def masked(self,pic_list):
         for i in pic_list:
-            file_name = re.split(r'[/.]', i)[2]
+            file_name = re.split(r'[/.]', i)[-3]
 
             image = nb.load(i)
             # 把仿射矩阵和头文件都存下来
@@ -48,26 +118,30 @@ class mask(object):
 
             # 形成新的nii文件
             image_masked = nb.Nifti1Image(image_masked, affine, hdr)
-            if not os.path.exists("subset_songminjie/QSM_masked/"):
-                os.makedirs("subset_songminjie/QSM_masked/")
-            nb.save(image_masked, "subset_songminjie/QSM_masked/"+file_name+"_mask.nii.gz")
+            if not os.path.exists("data/QSM_masked/"):
+                os.makedirs("data/QSM_masked/")
+            nb.save(image_masked, "data/QSM_masked/"+file_name+"_masked.nii.gz")
             print(i+' has been masked')
     # save the mask of the target QSM here is the last one of the list
-    def save_mask_of_targetpic(self,pic_list):
-        file_name = re.split(r'[/.]', pic_list[-1])[2]
-        image=ants.image_read(pic_list[-1])
+    def save_mask_of_targetpic(self,pic_dir):
+        if not os.path.exists("data/mask/"):
+            os.makedirs("data/mask/")
+        file_name = re.split(r'[/.]', pic_dir)[-3]
+        image=ants.image_read(pic_dir)
         mask=image.clone()
         mask[mask!=0]=1
-        ants.image_write(mask,"mask_of_"+file_name+".nii.gz")
+        ants.image_write(mask,"data/mask/mask_of_"+file_name+".nii.gz")
 
 class warp(object):
-    def warp(self,masked_dir_list,label_dir_list,testsubject_img):
+    def warp(self,masked_dir_list,label_dir_list):
         # 读取文件, 有24个atlas
+        testsubject_img = ants.image_read(masked_dir_list[24])
+        testsubject_tabel = ants.image_read(label_dir_list[24])
         for i in range(24):
             move_img = ants.image_read(masked_dir_list[i])  # subject的图像
             # 配准，使用SyN
             outs = ants.registration(testsubject_img, move_img, type_of_transforme='SyN')
-            atlas_name = re.split(r'[/.]', masked_dir_list[i])[1]
+            atlas_name = re.split(r'[/.]', masked_dir_list[i])[-3]
             print(atlas_name, ' has been warped')
             # atlas的label_img
             atlas_label_img = ants.image_read(label_dir_list[i])  # atlas的标签图像
@@ -76,15 +150,16 @@ class warp(object):
                                                            transformlist=outs['fwdtransforms'],
                                                            interpolator='nearestNeighbor')  # 'genericLabel'
             # get file name( without .nii.gz)
-            label_name = re.split(r'[/.]', label_dir_list[i])[1]
+            label_name = re.split(r'[/.]', label_dir_list[i])[-3]
             print(label_name, 'has been warped')
 
             # 保存变换后的图像
-            warped_atlas_filename = 'fusion_label_multi/QSM_warped/' + atlas_name + 'warped.nii.gz'
-            warped_atlas_label_filename = 'fusion_label_multi/label_warped/' + label_name + 'warped_label.nii.gz'
-
+            warped_atlas_filename = 'fusion_label_multi/QSM_warped/' + atlas_name + '_warped.nii.gz'
+            warped_atlas_label_filename = 'fusion_label_multi/label_warped/' + label_name + '_warped_label.nii.gz'
             ants.image_write(warped_atlas_label_img, warped_atlas_label_filename)
             ants.image_write(outs['warpedmovout'], warped_atlas_filename)
+
+        ants.image_write(testsubject_img,)    
 
 class crop(object):
     def __init__(self):
@@ -126,12 +201,18 @@ class crop(object):
         ants.image_write(cropped_mask, "data/mask/mask_of_N037_QSM_cropped.nii.gz")
         print('mask cropped')
 
-    def crop(self,img_dir,label_dir,path):
+    def crop(self,img_dir,label_dir,path,delta):
         if not os.path.exists(path+"QSM_masked_cropped/"):
             os.makedirs(path+"QSM_masked_cropped/")
         if not os.path.exists(path+"label_cropped/"):
             os.makedirs(path+"label_cropped/")
         x_min,y_min,z_min,x_max,y_max,z_max=self.get_size(img_dir,label_dir)
+        x_min -= delta[0]
+        y_min -= delta[0]
+        z_min -= delta[1]
+        x_max += delta[0]
+        y_max += delta[0]
+        z_max += delta[1]
         print(x_min,y_min,z_min,x_max,y_max,z_max)
         for i in range(25):
             print(i)
